@@ -1,0 +1,34 @@
+maven-fuzzy-db:
+  conn_type: postgres
+  description: Maven Fuzzy data source
+  extra: ''
+  host: sources
+  login: postgres
+  password: postgres
+  port: 5432
+  schema: postgres
+slack_conn:
+  conn_type: slack
+  description: Alerting
+  extra: '{"timeout": null}'
+  host: ''
+  login: ''
+  password:                         # Fill the token here
+  port: null
+  schema: ''
+warehouse:
+  conn_type: postgres
+  description: Koneksi ke data warehouse
+  extra: '{}'
+  host: warehouse
+  login: postgres
+  password: postgres
+  port: 5432
+  schema: postgres
+typesense:
+  conn_type: http
+  description: "Koneksi ke Typesense"
+  host: "typesense"
+  port: 8108
+  schema: "http"
+  extra: '{"api_key": "41e3c2bceea53181f259810e1cfe686001983aab502f933e9194b03b342eae2a"}'

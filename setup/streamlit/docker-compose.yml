@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  streamlit:
+    build:
+      context: ../../  # Change this to allow access to `app`
+      dockerfile: setup/streamlit/Dockerfile  # Specify the Dockerfile path
+    container_name: streamlit_app
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../../app:/app
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - TYPESENSE_API_KEY=${API_KEY}
+      - TYPESENSE_HOST=http://typesense:8108
+    networks:
+      - airflow-networks
+
+networks:
+  airflow-networks:
+    external: true
+    name: airflow-networks

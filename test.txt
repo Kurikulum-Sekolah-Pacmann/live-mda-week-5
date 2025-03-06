@@ -1,0 +1,7 @@
+tasks = [
+            ['dim_products', Transform._dim_products, ['products']],
+            ['dim_users', Transform._dim_users, ['website_sessions']],
+            ['fact_sessions', Transform._fact_sessions, ['website_sessions']],
+            ['fact_pageviews', Transform._fact_pageviews, ['customers_history']],
+            ['fact_order_items', Transform._fact_order_items, ['orders','order_items']]
+        ]

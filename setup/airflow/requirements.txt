@@ -1,0 +1,10 @@
+pandas
+pendulum
+apache-airflow==2.10.2
+apache-airflow-providers-postgres
+apache-airflow-providers-amazon
+apache-airflow-providers-slack
+pangres
+typesense
+requests
+scikit-learn
