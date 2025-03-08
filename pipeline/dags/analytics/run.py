@@ -3,6 +3,7 @@ from airflow.models import Variable
 from pendulum import datetime
 from analytics.tasks.main import main
 from helper.callbacks.slack_notifier import slack_notifier
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 # For slack alerting
 default_args = {
@@ -29,8 +30,14 @@ def ecommerce_analytics_pipeline():
     4. Analyzes each segment's characteristics
     5. Loads the results back to the data warehouse
     """
+         # Define the task to trigger the next DAG
+    trigger_to_reverse = TriggerDagRunOperator(
+        task_id='trigger_to_reverse',
+        trigger_dag_id="reverse_etl",
+        trigger_rule="none_failed"
+    )
     # Create the main task group with ETL tasks
-    main()
+    main() >> trigger_to_reverse
 
 # Instantiate the DAG
 dag = ecommerce_analytics_pipeline()
