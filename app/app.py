@@ -44,6 +44,29 @@ def search_products(query: str, client: typesense.Client) -> list:
     }
     return client.collections["products"].documents.search(search_parameters)
 
+def display_all_users(client: typesense.Client):
+    """
+    Display all users in the 'users' collection.
+    """
+    st.subheader("All Users in Collection")
+    
+    # Retrieve all users
+    search_parameters = {
+        "q": "*",  # Wildcard to match all documents
+        "query_by": "segment",  # Use a valid field for querying
+        "per_page": 1  # Adjust based on your dataset size
+    }
+    results = client.collections["users"].documents.search(search_parameters)
+    
+    if results["found"] > 0:
+        for hit in results["hits"]:
+            st.write(f"**User ID:** {hit['document']['id']}")
+            st.write(f"**Segment:** {hit['document']['segment']}")
+            st.write(f"**Recommended Products:** {', '.join(hit['document']['recommended_products'])}")
+            st.write("---")
+    else:
+        st.write("No users found in the collection.")
+
 # Streamlit App
 def main():
     st.title("Typesense Search Engine")
@@ -53,13 +76,14 @@ def main():
     
     # Sidebar for search options
     st.sidebar.header("Search Options")
-    search_type = st.sidebar.radio("Search Type", ["Users", "Products"])
+    search_type = st.sidebar.radio("Search Type", ["Users", "Products", "View All Users"])
     
-    # Search bar
-    query = st.text_input("Enter your search query:")
+    # Search bar (only for search functionality)
+    if search_type in ["Users", "Products"]:
+        query = st.text_input("Enter your search query:")
     
-    if query:
-        if search_type == "Users":
+    if search_type == "Users":
+        if query:
             st.subheader("Search Results for Users")
             results = search_users(query, client)
             if results["found"] > 0:
@@ -70,8 +94,9 @@ def main():
                     st.write("---")
             else:
                 st.write("No users found.")
-        
-        elif search_type == "Products":
+    
+    elif search_type == "Products":
+        if query:
             st.subheader("Search Results for Products")
             results = search_products(query, client)
             if results["found"] > 0:
@@ -82,6 +107,9 @@ def main():
                     st.write("---")
             else:
                 st.write("No products found.")
+    
+    elif search_type == "View All Users":
+        display_all_users(client)
 
 # Run the Streamlit app
 if __name__ == "__main__":

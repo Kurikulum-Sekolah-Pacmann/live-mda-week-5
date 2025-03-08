@@ -121,25 +121,19 @@ CREATE TABLE fact_order_items (
 
 -- analytics results
 CREATE TABLE dim_user_segments (
-    user_id VARCHAR(255) PRIMARY KEY,
-    segment INT NOT NULL
+    user_id INT PRIMARY KEY,
+    segment VARCHAR(50) NOT NULL,
+    recommended_products INT[],
+    FOREIGN KEY (user_id) REFERENCES dim_users(user_id) ON DELETE CASCADE
 );
+
 
 CREATE TABLE dim_segments (
-    segment INT PRIMARY KEY,
-    user_count INT NOT NULL,
-    avg_total_orders FLOAT NOT NULL,
-    avg_total_spent FLOAT NOT NULL,
-    avg_avg_order_value FLOAT NOT NULL,
-    avg_avg_item_price FLOAT NOT NULL,
-    avg_total_items_purchased FLOAT NOT NULL,
-    avg_time_since_first_order FLOAT NOT NULL
+    segment_id SERIAL PRIMARY KEY,
+    segment_name VARCHAR(50) NOT NULL,
+    description TEXT
 );
 
-CREATE TABLE search_personalization_rules (
-    segment INT PRIMARY KEY,
-    priority FLOAT NOT NULL
-);
 
 INSERT INTO dim_date (date_id,date_actual,day_suffix,day_name,day_of_year,week_of_month,week_of_year,week_of_year_iso,month_actual,month_name,month_name_abbreviated,quarter_actual,quarter_name,year_actual,first_day_of_week,last_day_of_week,first_day_of_month,last_day_of_month,first_day_of_quarter,last_day_of_quarter,first_day_of_year,last_day_of_year,mmyyyy,mmddyyyy,weekend_indr) VALUES
 	 (20120101,'2012-01-01','1st','Sunday',1,1,52,'2011-W52  ',1,'January','Jan',1,'First',2012,'2011-12-26','2012-01-01','2012-01-01','2012-01-31','2012-01-01','2012-03-31','2012-01-01','2012-12-31','012012','01012012  ','weekend'),
