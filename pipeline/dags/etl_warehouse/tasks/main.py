@@ -130,4 +130,3 @@ def main_etl(incremental):
     transform_tasks = transform_group()
     load_tasks = load_group(transform_tasks)
     
-    return load_tasks
