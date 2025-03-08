@@ -20,71 +20,69 @@ def setup_typesense_client() -> typesense.Client:
     
     return client
 
-# Search function
-def search_collection(collection_name: str, query: str, search_fields: list) -> list:
+# Search function for users
+def search_users(query: str, client: typesense.Client) -> list:
     """
-    Search a Typesense collection and return results.
+    Search for users in the Typesense collection.
     """
-    client = setup_typesense_client()
-    
     search_parameters = {
         "q": query,
-        "query_by": ",".join(search_fields),
-        "per_page": 10  # Limit results to 10 items
+        "query_by": "segment",
+        "per_page": 10
     }
-    
-    try:
-        results = client.collections[collection_name].documents.search(search_parameters)
-        return results["hits"]
-    except Exception as e:
-        st.error(f"Error searching {collection_name}: {str(e)}")
-        return []
+    return client.collections["users"].documents.search(search_parameters)
 
-# Streamlit app
+# Search function for products
+def search_products(query: str, client: typesense.Client) -> list:
+    """
+    Search for products in the Typesense collection.
+    """
+    search_parameters = {
+        "q": query,
+        "query_by": "name",
+        "per_page": 10
+    }
+    return client.collections["products"].documents.search(search_parameters)
+
+# Streamlit App
 def main():
     st.title("Typesense Search Engine")
     
+    # Initialize Typesense client
+    client = setup_typesense_client()
+    
     # Sidebar for search options
     st.sidebar.header("Search Options")
-    collection_name = st.sidebar.selectbox("Select Collection", ["users", "products"])
-    query = st.sidebar.text_input("Enter Search Query")
+    search_type = st.sidebar.radio("Search Type", ["Users", "Products"])
     
-    # Define search fields based on collection
-    if collection_name == "users":
-        search_fields = ["segment", "avg_order_value", "total_spent"]  # Removed "id"
-    elif collection_name == "products":
-        search_fields = ["name", "created_at"]  # Removed "id"
+    # Search bar
+    query = st.text_input("Enter your search query:")
     
-    # Perform search
-    if st.sidebar.button("Search"):
-        if query:
-            st.write(f"Searching {collection_name} for: `{query}`")
-            
-            # Get search results
-            results = search_collection(collection_name, query, search_fields)
-            
-            if results:
-                st.write(f"Found {len(results)} results:")
-                
-                # Display results in a table
-                if collection_name == "users":
-                    st.table([{
-                        "ID": hit["document"]["id"],  # Display ID but don't search by it
-                        "Segment": hit["document"]["segment"],
-                        "Avg Order Value": hit["document"]["avg_order_value"],
-                        "Total Spent": hit["document"]["total_spent"]
-                    } for hit in results])
-                elif collection_name == "products":
-                    st.table([{
-                        "ID": hit["document"]["id"],  # Display ID but don't search by it
-                        "Name": hit["document"]["name"],
-                        "Created At": hit["document"]["created_at"]
-                    } for hit in results])
+    if query:
+        if search_type == "Users":
+            st.subheader("Search Results for Users")
+            results = search_users(query, client)
+            if results["found"] > 0:
+                for hit in results["hits"]:
+                    st.write(f"**User ID:** {hit['document']['id']}")
+                    st.write(f"**Segment:** {hit['document']['segment']}")
+                    st.write(f"**Recommended Products:** {', '.join(hit['document']['recommended_products'])}")
+                    st.write("---")
             else:
-                st.warning("No results found.")
-        else:
-            st.warning("Please enter a search query.")
+                st.write("No users found.")
+        
+        elif search_type == "Products":
+            st.subheader("Search Results for Products")
+            results = search_products(query, client)
+            if results["found"] > 0:
+                for hit in results["hits"]:
+                    st.write(f"**Product ID:** {hit['document']['id']}")
+                    st.write(f"**Product Name:** {hit['document']['name']}")
+                    st.write(f"**Created At:** {hit['document']['created_at']}")
+                    st.write("---")
+            else:
+                st.write("No products found.")
 
-# Run the app
+# Run the Streamlit app
 if __name__ == "__main__":
     main()

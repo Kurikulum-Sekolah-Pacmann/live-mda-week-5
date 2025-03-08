@@ -13,8 +13,6 @@ def extract_users(**context):
     df = Extract.extract_user_segments(**context)
     
     if df is not None:
-        # Convert DataFrame to dictionary for XCom serialization
-        df = df.applymap(lambda x: x.isoformat() if isinstance(x, pd.Timestamp) and not pd.isna(x) else (None if pd.isna(x) else x))
         return df.to_dict(orient='records')
     return None
 

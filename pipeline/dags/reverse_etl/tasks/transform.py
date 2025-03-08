@@ -23,11 +23,10 @@ class Transform:
             user = {
                 'id': str(row['user_id']),
                 'segment': row['segment'],
-                'avg_order_value': float(row['avg_avg_order_value']),
-                'total_spent': float(row['avg_total_spent'])
+                'recommended_products': row['recommended_products'],
             }
             users.append(user)
-            
+
         return users
     
     @staticmethod

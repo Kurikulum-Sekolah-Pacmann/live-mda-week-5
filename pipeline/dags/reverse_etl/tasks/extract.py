@@ -21,17 +21,8 @@ class Extract:
             # Query to get user segments with their data
             query = """
                 SELECT 
-                    us.user_id,
-                    us.segment,
-                    s.user_count,
-                    s.avg_total_orders,
-                    s.avg_total_spent,
-                    s.avg_avg_order_value,
-                    s.avg_avg_item_price,
-                    s.avg_total_items_purchased,
-                    s.avg_time_since_first_order
+                    *
                 FROM dim_user_segments us
-                JOIN dim_segments s ON us.segment = s.segment
             """
             
             df = postgres_hook.get_pandas_df(query)

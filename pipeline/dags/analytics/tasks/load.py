@@ -7,33 +7,27 @@ import pandas as pd
 
 class Load:
     @staticmethod
-    def save_results(features, segment_analysis, **kwargs):
+    def save_results(features, **kwargs):
         """
-        Save results to CSV first, then insert into the data warehouse using truncate then insert pattern.
+        Save results to the data warehouse using truncate then insert pattern.
         
         Args:
-            features: DataFrame with user features and segments
-            segment_analysis: DataFrame with segment analysis
+            features: DataFrame with user features, segments and product preferences
         """
         try:
             logging.info("Starting save_results process...")
             ti = kwargs['ti']
             
-            # Check if DataFrames are empty
+            # Check if DataFrame is empty
             if features.empty:
                 logging.warning("Features DataFrame is empty! Cannot proceed.")
                 raise AirflowException("Features DataFrame is empty")
-                
-            if segment_analysis.empty:
-                logging.warning("Segment analysis DataFrame is empty! Cannot proceed.")
-                raise AirflowException("Segment analysis DataFrame is empty")
             
             # Get connection from PostgresHook
             postgres_hook = PostgresHook(postgres_conn_id='warehouse')
             postgres_uri = postgres_hook.get_uri()
             
             engine = create_engine(postgres_uri)
-
             
             # Get the database connection
             conn = postgres_hook.get_conn()
@@ -42,10 +36,28 @@ class Load:
             # Prepare the data
             try:
                 # 1. Prepare user segments
-                user_segments_df = features[['user_id', 'segment']]
-                # 2. Prepare search personalization rules
-                search_rules = segment_analysis[['segment', 'avg_total_spent']].rename(columns={'avg_total_spent': 'priority'})
-                search_rules['priority'] = search_rules['priority'].rank(ascending=False)
+                user_segments_df = features[['user_id', 'segment', 'product_preferences']]
+                user_segments_df = user_segments_df.rename(columns={'product_preferences': 'recommended_products'})
+                
+                # Convert product_preferences list to PostgreSQL array format
+                def format_product_array(product_list):
+                    # Convert product IDs to integers and format as PostgreSQL array
+                    if not product_list:
+                        return '{}'
+                    return '{' + ','.join(str(int(float(p))) for p in product_list) + '}'
+                
+                user_segments_df['recommended_products'] = user_segments_df['recommended_products'].apply(format_product_array)
+                
+                # 2. Prepare dim_segments data
+                # Get unique segments with descriptions
+                segments_df = pd.DataFrame({
+                    'segment_name': features['segment'].unique()
+                })
+                
+                # Generate descriptions based on segment names
+                segments_df['description'] = segments_df['segment_name'].apply(
+                    lambda name: f"Customer segment characterized as {name.lower()} based on purchase behavior analysis."
+                )
 
             except Exception as e:
                 logging.error(f"Error preparing DataFrames: {str(e)}")
@@ -54,16 +66,12 @@ class Load:
             # Begin transaction truncate
             try:
                 # Truncate and insert dim_user_segments
-                cursor.execute("TRUNCATE TABLE dim_user_segments;")
+                cursor.execute("TRUNCATE TABLE dim_user_segments CASCADE;")
                 logging.info("Truncated dim_user_segments successfully.")
                 
                 # Truncate and insert dim_segments
-                cursor.execute("TRUNCATE TABLE dim_segments;")
+                cursor.execute("TRUNCATE TABLE dim_segments CASCADE;")
                 logging.info("Truncated dim_segments successfully.")
-
-                # Truncate and insert search_personalization_rules
-                cursor.execute("TRUNCATE TABLE search_personalization_rules;")
-                logging.info("Truncated search_personalization_rules successfully.")
 
                 # Commit the transaction
                 conn.commit()
@@ -80,17 +88,14 @@ class Load:
 
             # Insert data
             try:
+                 # Insert segments
+                segments_df.to_sql('dim_segments', engine, if_exists='append', index=False)
+                logging.info("Inserted segments successfully.")
+
                 # Insert user segments
                 user_segments_df.to_sql('dim_user_segments', engine, if_exists='append', index=False)
                 logging.info("Inserted user segments successfully.")
-                
-                # Insert segments
-                segment_analysis.to_sql('dim_segments', engine, if_exists='append', index=False)
-                logging.info("Inserted segments successfully.")
-                
-                # Insert search personalization rules
-                search_rules.to_sql('search_personalization_rules', engine, if_exists='append', index=False)
-                logging.info("Inserted search personalization rules successfully.")
+
             except Exception as e:
                 logging.error(f"Error inserting data to warehouse: {str(e)}")
                 raise AirflowException(f"Error inserting data to warehouse: {str(e)}")
@@ -101,8 +106,7 @@ class Load:
                 value={
                     "status": "success", 
                     "user_segments_count": len(user_segments_df),
-                    "segments_count": len(segment_analysis),
-                    "rules_count": len(search_rules)
+                    "segments_count": len(segments_df)
                 }
             )
             logging.info("Pushed data to XCom successfully.")

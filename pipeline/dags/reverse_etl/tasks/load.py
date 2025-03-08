@@ -1,6 +1,7 @@
 import typesense
 from airflow.hooks.base import BaseHook
 from typing import List, Dict, Any
+from airflow.exceptions import AirflowSkipException, AirflowException
 
 class Load:
     @staticmethod
@@ -25,7 +26,7 @@ class Load:
     @staticmethod
     def create_collection_if_not_exists(client: typesense.Client, collection_name: str, schema: Dict) -> None:
         """
-        Membuat koleksi Typesense jika belum ada.
+        Create a collection in Typesense if it does not exist.
         """
         try:
             client.collections[collection_name].retrieve()
@@ -35,37 +36,38 @@ class Load:
     @staticmethod
     def load_users_to_typesense(user_data: List[Dict[str, Any]], **context) -> None:
         """
-        Memuat data pengguna ke koleksi Typesense `users`.
+        Create a collection in Typesense if it does not exist.
         """
-        client = Load.setup_typesense_client()
+        try:
+            client = Load.setup_typesense_client()
 
-        users_schema = {
-            "name": "users",
-            "fields": [
-                {"name": "id", "type": "string"},  # user_id
-                {"name": "segment", "type": "string", "facet": True},  # segment
-                {"name": "avg_order_value", "type": "float"},  # avg_avg_order_value
-                {"name": "total_spent", "type": "float"}  # avg_total_spent
-            ],
-            "default_sorting_field": "total_spent"
-        }
+            users_schema = {
+                "name": "users",
+                "fields": [
+                    {"name": "id", "type": "string"},  # user_id
+                    {"name": "segment", "type": "string"},  # segment
+                    {"name": "recommended_products", "type": "string[]"},  # recommended_products
+                ]
+            }
 
-        # Pastikan koleksi sudah ada
-        Load.create_collection_if_not_exists(client, "users", users_schema)
+            # Create collection if not exists
+            Load.create_collection_if_not_exists(client, "users", users_schema)
 
-        # Impor data dalam batch
-        batch_size = 100
-        for i in range(0, len(user_data), batch_size):
-            batch = user_data[i:i + batch_size]
-            try:
-                client.collections["users"].documents.import_(batch, {"action": "upsert"})
-            except Exception as e:
-                print(f"Error importing users batch: {str(e)}")
+            # Import data in batch
+            batch_size = 100
+            for i in range(0, len(user_data), batch_size):
+                batch = user_data[i:i + batch_size]
+                try:
+                    client.collections["users"].documents.import_(batch, {"action": "upsert"})
+                except Exception as e:
+                    print(f"Error importing users batch: {str(e)}")
+        except Exception as e:
+            raise AirflowException(f"Error : {str(e)}")
 
     @staticmethod
     def load_products_to_typesense(product_data: List[Dict[str, Any]], **context) -> None:
         """
-        Memuat data produk ke koleksi Typesense `products`.
+        Load product data to Typesense
         """
         client = Load.setup_typesense_client()
 
@@ -78,10 +80,10 @@ class Load:
             ]
         }
 
-        # Pastikan koleksi sudah ada
+        # Create collection if not exists
         Load.create_collection_if_not_exists(client, "products", products_schema)
 
-        # Impor data dalam batch
+        # Import data in batch
         batch_size = 100
         for i in range(0, len(product_data), batch_size):
             batch = product_data[i:i + batch_size]

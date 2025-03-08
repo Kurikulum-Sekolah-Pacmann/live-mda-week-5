@@ -5,6 +5,7 @@ from analytics.tasks.extract import Extract
 from analytics.tasks.analytics import Analytics
 from analytics.tasks.load import Load
 import pandas as pd
+import numpy as np
 
 def extract_data(**context):
     """
@@ -76,11 +77,25 @@ def segment_users(**context):
     # Convert dictionary back to DataFrame
     features_df = pd.DataFrame(data)
     
+    # Perform segmentation
     segmented_df = Analytics.segment_users(features=features_df, n_clusters=n_clusters, **context)
     
     if segmented_df is not None:
+        # Define a function to format each value in the DataFrame
+        def format_value(x):
+            if isinstance(x, pd.Timestamp) and not pd.isna(x):
+                return x.isoformat()
+            elif isinstance(x, (list, np.ndarray)):  # Handle lists or arrays
+                return [format_value(item) for item in x]
+            elif pd.isna(x):  # Handle NaN values
+                return None
+            else:
+                return x
+        
+        # Apply the formatting function to each element in the DataFrame
+        segmented_df = segmented_df.applymap(format_value)
+        
         # Convert DataFrame to dictionary for XCom serialization
-        segmented_df = segmented_df.applymap(lambda x: x.isoformat() if isinstance(x, pd.Timestamp) and not pd.isna(x) else (None if pd.isna(x) else x))
         return segmented_df.to_dict(orient='records')
     return None
 
@@ -101,8 +116,8 @@ def analyze_segments(**context):
     analysis_df = Analytics.analyze_segments(features=segmented_df, **context)
     
     if analysis_df is not None:
-        # Convert DataFrame to dictionary for XCom serialization
-        analysis_df = analysis_df.applymap(lambda x: x.isoformat() if isinstance(x, pd.Timestamp) and not pd.isna(x) else (None if pd.isna(x) else x))
+        # # Convert DataFrame to dictionary for XCom serialization
+        # analysis_df = analysis_df.applymap(lambda x: x.isoformat() if isinstance(x, pd.Timestamp) and not pd.isna(x) else (None if pd.isna(x) else x))
         return analysis_df.to_dict(orient='records')
     return None
 
@@ -112,17 +127,12 @@ def load_data(**context):
     """
     # Get data from previous tasks
     ti = context['task_instance']
-    segmented_data = ti.xcom_pull(task_ids="analytics.segment_users")
+    # segmented_data = ti.xcom_pull(task_ids="analytics.segment_users")
     analysis_data = ti.xcom_pull(task_ids="analytics.analyze_segments")
     
-    if segmented_data is None or analysis_data is None:
-        return None
-        
-    # Convert dictionary back to DataFrame
-    segmented_df = pd.DataFrame(segmented_data)
     analysis_df = pd.DataFrame(analysis_data)
     
-    Load.save_results(features=segmented_df, segment_analysis=analysis_df, **context)
+    Load.save_results(features=analysis_df, **context)
 
 @task_group(group_id='analytics')
 def main():
