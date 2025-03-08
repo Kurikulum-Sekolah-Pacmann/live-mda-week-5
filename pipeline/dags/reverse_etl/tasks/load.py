@@ -22,6 +22,16 @@ class Load:
         })
         
         return client
+    
+    @staticmethod
+    def remove_collection_if_exists(client: typesense.Client, collection_name: str) -> None:
+        """
+        Remove a collection in Typesense if it exists.
+        """
+        try:
+            client.collections[collection_name].delete()
+        except typesense.exceptions.ObjectNotFound:
+            pass
 
     @staticmethod
     def create_collection_if_not_exists(client: typesense.Client, collection_name: str, schema: Dict) -> None:
@@ -45,8 +55,9 @@ class Load:
                 "name": "users",
                 "fields": [
                     {"name": "id", "type": "string"},  # user_id
-                    {"name": "segment", "type": "string"},  # segment
-                    # {"name": "recommended_products", "type": "string[]"},  # recommended_products
+                    {"name": "user_id", "type": "string"},  # user_id
+                    {"name": "segment", "type": "string"},
+                    {"name": "recommended_products", "type": "string[]"}  # list of product_ids
                 ]
             }
 
@@ -61,6 +72,8 @@ class Load:
                     client.collections["users"].documents.import_(batch, {"action": "upsert"})
                 except Exception as e:
                     raise AirflowException(f"Error : {str(e)}")
+            
+            # Load.remove_collection_if_exists(client, "users")
         except Exception as e:
             raise AirflowException(f"Error : {str(e)}")
 
@@ -91,3 +104,4 @@ class Load:
                 client.collections["products"].documents.import_(batch, {"action": "upsert"})
             except Exception as e:
                 print(f"Error importing products batch: {str(e)}")
+

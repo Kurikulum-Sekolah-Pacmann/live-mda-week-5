@@ -22,8 +22,9 @@ class Transform:
         for _, row in df.iterrows():
             user = {
                 'id': str(row['user_id']),
+                'user_id': str(row['user_id']),
                 'segment': row['segment'],
-                'recommended_products': row['recommended_products'],
+                'recommended_products': [str(product) for product in row['recommended_products']],
             }
             users.append(user)
 

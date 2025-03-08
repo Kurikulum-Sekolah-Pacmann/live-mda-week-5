@@ -27,7 +27,7 @@ def search_users(query: str, client: typesense.Client) -> list:
     """
     search_parameters = {
         "q": query,
-        "query_by": "segment",
+        "query_by": "user_id",
         "per_page": 10
     }
     return client.collections["users"].documents.search(search_parameters)
@@ -52,9 +52,9 @@ def display_all_users(client: typesense.Client):
     
     # Retrieve all users
     search_parameters = {
-        "q": "*",  # Wildcard to match all documents
-        "query_by": "segment",  # Use a valid field for querying
-        "per_page": 1  # Adjust based on your dataset size
+        "q": "*", 
+        "query_by": "segment",  
+        "per_page": 1  
     }
     results = client.collections["users"].documents.search(search_parameters)
     
