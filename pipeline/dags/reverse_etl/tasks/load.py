@@ -36,7 +36,7 @@ class Load:
     @staticmethod
     def load_users_to_typesense(user_data: List[Dict[str, Any]], **context) -> None:
         """
-        Create a collection in Typesense if it does not exist.
+        Load user data to Typesense
         """
         try:
             client = Load.setup_typesense_client()
@@ -46,7 +46,7 @@ class Load:
                 "fields": [
                     {"name": "id", "type": "string"},  # user_id
                     {"name": "segment", "type": "string"},  # segment
-                    {"name": "recommended_products", "type": "string[]"},  # recommended_products
+                    # {"name": "recommended_products", "type": "string[]"},  # recommended_products
                 ]
             }
 
@@ -60,7 +60,7 @@ class Load:
                 try:
                     client.collections["users"].documents.import_(batch, {"action": "upsert"})
                 except Exception as e:
-                    print(f"Error importing users batch: {str(e)}")
+                    raise AirflowException(f"Error : {str(e)}")
         except Exception as e:
             raise AirflowException(f"Error : {str(e)}")
 

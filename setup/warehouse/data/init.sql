@@ -103,7 +103,7 @@ CREATE TABLE fact_order_items (
     order_cogs_usd NUMERIC(6, 2),
 
     product_id INT,
-	primary_product_id INT
+	primary_product_id INT,
     is_primary_item BOOLEAN,
     item_price_usd NUMERIC(6, 2),
     item_cogs_usd NUMERIC(6, 2),
